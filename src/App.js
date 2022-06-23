@@ -1,23 +1,25 @@
-import logo from './logo.svg';
-import './App.css';
+import React, {useState, useEffect} from "react";
+import Routing from './Components/Routing';
+import './App.scss';
 
 function App() {
+  const token = localStorage.getItem('access-token');
+  const [isAuth, setIsAuth] = useState(false);
+
+  useEffect(() => {
+   setIsAuth(!!token);
+   if( !!token){
+     
+   }
+  },[])
+
   return (
+    
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+       <Routing isAuth={isAuth}/>
+      {/* <Login/>
+      <Signup/> */}
+     {/* <Book/> */}
     </div>
   );
 }

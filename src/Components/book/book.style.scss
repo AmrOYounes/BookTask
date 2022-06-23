@@ -1,0 +1,16 @@
+.book-container{
+ border: 2px solid rgb(150, 144, 144);
+ .header-title{
+    border-bottom: 2px solid black;
+    max-height: 40px;
+    h3{
+        padding: 0px;
+        margin: 0px;
+    }
+ }
+
+}
+.react-tagsinput{
+    height: 55px;
+    border-radius: 5px;
+}
