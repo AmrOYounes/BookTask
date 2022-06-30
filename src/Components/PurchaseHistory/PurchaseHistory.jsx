@@ -9,9 +9,6 @@ import { format } from 'date-fns';
 import {orderSearch,ordersExPORT} from '../../Actions/APIs/BookAPI';
 import OrderTable from '../OrderTable';
 
-
-
-
 const PurchaseHistory = () => {
     const filterOptions = [
         {label:'Any', value:'Any'},
@@ -38,13 +35,29 @@ console.log(purchaseDate)
         sertFilter(newValue)
       }
       
-      const handleSearch = (page=1) => {
+      const handleChangePage = page => {
         const params = {
           purchaseDate,
           search_by_word: searchWord,
           column_filter: filter.label,
           page: page,
         }
+        orderSearch(params).then( res => {
+          setOrders(res.data.data);
+          setCount(res.data.total);
+       
+        })
+      }
+
+      const handleSearch = (event ,page=1) => {
+        event.preventDefault();
+        const params = {
+          purchaseDate,
+          search_by_word: searchWord,
+          column_filter: filter.label,
+          page: page,
+        }
+        console.log(params);
         orderSearch(params).then( res => {
           setOrders(res.data.data);
           setCount(res.data.total);
@@ -91,13 +104,15 @@ console.log(purchaseDate)
 
   return (
     <Grid container justifyContent='center'>
+      <form style={{width:'100%'}} onSubmit={ (e)=>handleSearch(e)}>
+      <Grid container justifyContent='center'>
     <Grid item xs={12} textAlign='center' marginBottom={10}> Purchase history</Grid>
     <Grid item xs={9}>
 
       <Grid container justifyContent='center' spacing={4} marginBottom={5}>
          <Grid item xs={2}>Search By word</Grid>
          <Grid item xs={8}>
-         <TextField  id="outlined-basic"  onChange={handleChnage}  name='search' fullWidth variant="outlined"/>
+         <TextField  required id="outlined-basic"  onChange={handleChnage}  name='search' fullWidth variant="outlined"/>
          </Grid>
       </Grid>
 
@@ -122,7 +137,7 @@ console.log(purchaseDate)
       <Grid container justifyContent='center' spacing={4}>
          <Grid item xs={2}/>   
          <Grid item xs={4}>
-          <Button variant='contained' onClick={()=>handleSearch()}  fullWidth >Search</Button>
+          <Button variant='contained' type='submit'  fullWidth >Search</Button>
          </Grid>
          <Grid item xs={4}/>
           
@@ -133,16 +148,18 @@ console.log(purchaseDate)
      {/* <Select  options={filterOptions} onChange={(newValue) =>handleChangeFilter(newValue)} /> */}
      <Select  options={filterOptions} onChange={(newValue) =>handleChangeFilter(newValue)}/>
      </Grid>
- 
+    
+     </Grid>
+     </form>
   {orders.length > 0 && (
     <Grid container marginTop={10}>
     <Grid item xs ={12} textAlign='right'>
      <span>Export as </span>
-     <Button variant='contained' onClick={()=> handleExport('PDF')}>PDF</Button>
-     <Button variant='contained' onClick={()=> handleExport('CSV')}>CSV</Button>
-     <Button variant='contained' onClick={()=> handleExport('XLSX')}>EXCEL</Button>
+     <Button  sx={{margin:'5px 5px'}} variant='contained' onClick={()=> handleExport('PDF')}>PDF</Button>
+     <Button  sx={{margin:'5px 5px'}}variant='contained' onClick={()=> handleExport('CSV')}>CSV</Button>
+     <Button  sx={{margin:'5px 5px'}}variant='contained' onClick={()=> handleExport('XLSX')}>EXCEL</Button>
   </Grid>
-    <OrderTable orders={orders} count={count} rowsPerPage={rowsPerPage} handleSearch={handleSearch}/>
+    <OrderTable orders={orders} count={count} rowsPerPage={rowsPerPage} handleSearch={handleChangePage}/>
     </Grid>
   )}
      

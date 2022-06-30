@@ -96,7 +96,7 @@ const BuyerDetails = ({handledisableTab, handleSelectTab, handleFillOrderInfo ,r
           <Stack spacing={3}>
             <DesktopDatePicker
             inputFormat="yyyy-MM-dd"
-            value={ purchaseDate  || null}
+            value={ purchaseDate}
               onChange={(date)=> {
                 setPurchaseDate(date);
               }}

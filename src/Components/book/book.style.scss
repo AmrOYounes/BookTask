@@ -1,3 +1,6 @@
+.book-form{
+    border: 2px solid gray;
+}
 .book-container{
  border: 2px solid rgb(150, 144, 144);
  .header-title{
@@ -13,4 +16,13 @@
 .react-tagsinput{
     height: 55px;
     border-radius: 5px;
+  
+        
 }
+
+.error{
+    color: #D32F2F;
+    font-size: 14px;
+   }
+
+   

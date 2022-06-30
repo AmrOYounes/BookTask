@@ -1,57 +1,86 @@
 import React, {useState} from 'react';
-import { Grid, TextField, Button } from '@mui/material';
+import { Grid, Button, Paper } from '@mui/material';
+import {Formik, Form} from 'formik';
+import TextField from '../TextField';
+import * as Yup from 'yup';
 import {signUp} from '../../Actions/APIs/BookAPI';
+import {useNavigate} from 'react-router-dom';
+
+const initialValues = {
+   email: '',
+   password: '',
+   cpassword: '',
+};
+
+const validationSchema = Yup.object({
+   email: Yup.string()
+     .email('Invalid email format')
+     .required('Required'),
+   password: Yup.string().required('No password provided.').min(8,'Password is too short - should be 8 chars minimum.'),
+   cpassword: Yup.string().required('Required').oneOf([Yup.ref('password'), null], 'Passwords must match'),
+   
+ });
 
 function Signup() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [cpassword, setCPassword] = useState('');
+   const navigate = useNavigate();
+   //  const [email, setEmail] = useState('');
+   //  const [password, setPassword] = useState('');
+   //  const [cpassword, setCPassword] = useState('');
 
-    const handleChange = e => {
-     const {name, value} = e.target;
-     switch(name){
-         case 'email': 
-            setEmail(value);
-         break;
-         case 'password' :
-            setPassword(value);
-            break;
-         case 'cpassword' :
-            setCPassword(value);
-            break;   
-     }
-    }
+  
 
-    const handleSignUp = () => {
+    const handleSignUp = (values, {resetForm}) => {
+      const {email, password, cpassword} = values;
+      console.log(values);
       const params = {
          email,
          password,
          c_password: cpassword,
       }
-
+      
       signUp(params).then(res => {
-         setEmail('');
-         setPassword('');
-         setCPassword('');
+         resetForm();
+         navigate('/login');
       })
 
     }
 
   return (
-    <Grid container justifyContent='center' alignItems='center' className='signup-container'>
-    <Grid item xs={12} md={6}>
-     <h1>SignUp Page</h1>
-     <label>email</label>
-     <TextField name='email' value={email} variant="outlined" fullWidth onChange={handleChange} />
-     <label>password</label>
-     <TextField name='password' value={password} variant="outlined" fullWidth type='password' onChange={handleChange} />
-     <label>confirm password</label>
-     <TextField name='cpassword' value={cpassword} variant="outlined" fullWidth type='password' onChange={handleChange} />
+   <Formik
+   initialValues={initialValues}
+   validationSchema={validationSchema}
+   onSubmit={handleSignUp}
+   >
+   <Form>
+   <Grid container justifyContent='center' alignItems='center' sx={{height:'100vh'}}>
+  <Grid item xs={6}>
+    <Paper elevation={9} sx={{paddingLeft: '30px'}} >
+    <Grid>
+       <h2>SignUp Form</h2>
     </Grid>
-    <Grid item xs={12} textAlign='right' marginTop={10} marginRight={35}> 
-    <Button variant="contained" onClick={handleSignUp}>SignUp</Button>
+    <Grid item xs={6}>
+    <label>email</label>
+     <TextField name='email'/>
+      </Grid>
+ 
+    <Grid item xs={6}>
+    <label>password</label>
+     <TextField name='password'  type='password' />
     </Grid>
+    <Grid item xs={6}>
+    <label>confirm password</label>
+     <TextField name='cpassword'  type='password'/>
+    </Grid>
+    
+    
+    <Grid item xs={12} textAlign='right' marginTop={10}> 
+    <Button variant="contained" type='submit' sx={{minWidth:'120px', margin:' 0 30px 30px 0'}} >Signup</Button>
+    </Grid>
+    </Paper>
+  </Grid>
    </Grid>
+   </Form>
+   </Formik>
   )
 }
 

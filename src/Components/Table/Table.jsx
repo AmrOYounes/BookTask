@@ -8,10 +8,11 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Pagination from '@mui/material/Pagination';
-
+import {Link, NavLink} from 'react-router-dom';
 import { Button, Grid } from '@mui/material';
 
  const BookTable = ({books, count, rowsPerPage,handleSearch}) => {
+  console.log(books,count);
     console.log(books,count);
     const [page, setPage] = useState(1);
    const  handleChangePage = (event, value) => {
@@ -19,13 +20,25 @@ import { Button, Grid } from '@mui/material';
     setPage(value);
     handleSearch(value);
      }
+
+     const getTags = (tags)=> {
+      console.log(tags)
+       const temp = []; 
+       tags.forEach((tag,index) => {
+        console.log(tag.Tag_name)
+         temp.push(tag.Tag_name);
+       }) 
+        return temp.join()
+        
+     }
   return (
     <Grid container justifyContent='center'> 
     <TableContainer component={Paper}>
-      <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
+      <Table size="small" aria-label="a dense table">
         <TableHead>
           <TableRow>
             <TableCell>ID</TableCell>
+            <TableCell>Title</TableCell>
             <TableCell align="right">Publisher</TableCell>
             <TableCell align="right">Publish Date</TableCell>
             <TableCell align="right">Author</TableCell>
@@ -44,13 +57,19 @@ import { Button, Grid } from '@mui/material';
               <TableCell component="th" scope="row">
                 {book.Book_id}
               </TableCell>
-              <TableCell align="right">{book.Book_publisher}</TableCell>
+              <TableCell align="right">{book.Book_title}</TableCell>
+              <TableCell align="right">{book.publisher.Publisher_name}</TableCell>
               <TableCell align="right">{book.Publish_date}</TableCell>
-              <TableCell align="right">{book.Book_author}</TableCell>
-              <TableCell align="right">{book.tag.Tag_name}</TableCell>
+              <TableCell align="right">{book.author.First_name+''+book.author.Last_name}</TableCell>
+              <TableCell align="right">{getTags(book.tag)}</TableCell>
               <TableCell align="right">{book.Available_units}</TableCell>
               <TableCell align="right">{book.Unit_price}</TableCell>
-              <TableCell align="right"> <Button disabled={ +book.Available_units? false : true} variant='contained'>reserve</Button></TableCell>
+              <TableCell align="right"> <Button disabled={ +book.Available_units? false : true} variant='contained'>
+                <Link to={`/BookReserve/${book.Book_id}`}>
+                Reserve
+               </Link>
+              </Button>
+              </TableCell>
               
             </TableRow>
           ))}

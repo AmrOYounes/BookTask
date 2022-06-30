@@ -1,9 +1,10 @@
 import React, {useState} from 'react';
-import {Button, Grid,TextField} from '@mui/material';
+import {Button, Grid,TextField,Paper} from '@mui/material';
 import Select from 'react-select';
 import {bookSearch} from '../../Actions/APIs/BookAPI';
-import {NavLink} from 'react-router-dom';
+import {Link} from 'react-router-dom';
 import BookTable from '../Table';
+import './bookSearch.style.scss';
 import {exportData} from '../../Actions/APIs/BookAPI';
  const BookSearch = () => {
   const filterOptions = [
@@ -22,6 +23,22 @@ import {exportData} from '../../Actions/APIs/BookAPI';
   const[priceStart, setPriceStart] = useState('');
   const[priceEnd, setPriceEnd] = useState('');
   const[filter, sertFilter] = useState('');
+  const[errors, setErros] = useState({
+   search: false,
+   filter: false,
+  })
+
+  const customStyles = {
+   control: (base, state) => {
+
+      return ({
+     ...base,
+     height: 55,
+     minHeight: 35,
+     border:  errors.filter ? '1px solid red' : null
+   })
+ }
+ };
 
 
   const handleChange = (e)=>{
@@ -50,25 +67,52 @@ import {exportData} from '../../Actions/APIs/BookAPI';
 
   const handleChangeFilter = (newValue) => {
    console.log(newValue);
-   sertFilter(newValue.label)
+   sertFilter(newValue.label);
+   setErros({
+      ...errors,
+      filter: false
+   })
   }
 
-  const handleSearch = (page=1) => {
-   console.log('fff')
-    const params = {
-      search_by_word: search,
-      column_filter: filter,
-      unit_start: unitStart,
-      unit_end: unitEnd,
-      price_start: priceStart,
-      price_end: priceEnd,
-      page: page,
-    }
-
-    bookSearch(params).then(res => {
-      setData(res.data.data);
-      setCount(res.data.total);
-    });
+   const handleChangePage = page => {
+      const params = {
+         search_by_word: search,
+         column_filter: filter,
+         unit_start: unitStart,
+         unit_end: unitEnd,
+         price_start: priceStart,
+         price_end: priceEnd,
+         page
+       }
+       bookSearch(params).then(res => {
+         setData(res.data.data);
+         setCount(res.data.total);
+       });
+   }
+  const handleSearch = (event, page=1) => {
+   event.preventDefault();
+   if( filter ){
+      const params = {
+         search_by_word: search,
+         column_filter: filter,
+         unit_start: unitStart,
+         unit_end: unitEnd,
+         price_start: priceStart,
+         price_end: priceEnd,
+         page
+       }
+   
+       bookSearch(params).then(res => {
+         setData(res.data.data);
+         setCount(res.data.total);
+       });
+   }
+   else{
+      setErros({
+         ...errors,
+         filter: true
+      })
+   }
   }
 
   const handleExport = (type) => {
@@ -111,14 +155,20 @@ import {exportData} from '../../Actions/APIs/BookAPI';
   }
 
   return (
-  <Grid container justifyContent='center'>
+  <Grid container justifyContent='center' sx={{border:'1px   solid gray', paddingBottom:'100px'}}>
+   <form onSubmit={ handleSearch}  className='book-search-form'>
+   <Grid container justifyContent='center' > 
     <Grid item xs={12} textAlign='center' marginBottom={10}> Search for a book</Grid>
     <Grid item xs={9}>
 
       <Grid container justifyContent='center' spacing={4} marginBottom={5}>
          <Grid item xs={2}>Search By word</Grid>
          <Grid item xs={8}>
-         <TextField id="outlined-basic" onChange={handleChange}  name='search' fullWidth variant="outlined"/>
+         <TextField  required id="outlined-basic" onChange={handleChange}  name='search' fullWidth variant="outlined"/>
+         {
+            errors.search && (<div className='error'>Required</div>)
+         }
+         
          </Grid>
       </Grid>
 
@@ -144,33 +194,46 @@ import {exportData} from '../../Actions/APIs/BookAPI';
       <Grid container justifyContent='center' spacing={4}>
          <Grid item xs={2}/>   
          <Grid item xs={4}>
-          <Button variant='contained' onClick={() => handleSearch()} fullWidth >Search</Button>
+          <Button variant='contained'  type='submit' fullWidth >Search</Button>
          </Grid>
-         <Grid item xs={4}/>
+         <Grid item xs={4}>
+           <Link to='/'> <Button  variant='contained' fullWidth>Add book</Button></Link> 
+         </Grid>
           
       </Grid>
 
     </Grid>
-    <Grid  justifyContent='center' item xs={2}>  <Select  options={filterOptions} onChange={(newValue) =>handleChangeFilter(newValue)} /></Grid>
-   
+    <Grid  justifyContent='center' item xs={2}> 
+     <Select  options={filterOptions} onChange={(newValue) =>handleChangeFilter(newValue)} styles={customStyles} />
+     {
+    errors.filter && (<div className='error'>Required</div>)
+    }
+     </Grid>
+    </Grid>
+    </form>
+   <Grid container justifyContent='center'> 
     {data.length > 0 && (
       <Grid item xs={12} marginTop={20}> 
       <Grid item xs ={12} textAlign='right'>
          <span>Export as </span>
-         <Button variant='contained' onClick={()=> handleExport('PDF')}>PDF</Button>
-         <Button variant='contained' onClick={()=> handleExport('CSV')}>CSV</Button>
-         <Button variant='contained' onClick={()=> handleExport('XLSX')}>EXCEL</Button>
+         <Button sx={{margin:'5px 5px'}} variant='contained' onClick={()=> handleExport('PDF')}>PDF</Button>
+         <Button  sx={{margin:'5px 5px'}}variant='contained' onClick={()=> handleExport('CSV')}>CSV</Button>
+         <Button  sx={{margin:'5px 5px'}}variant='contained' onClick={()=> handleExport('XLSX')}>EXCEL</Button>
       </Grid>
       
-     <BookTable books={data} count={count} rowsPerPage={rowsPerPage} handleSearch={handleSearch}/>
+     <BookTable books={data} count={count} rowsPerPage={rowsPerPage} handleSearch={handleChangePage}/>
       </Grid>
     )}
-   
-   <Grid item xs={12} textAlign='center' marginTop={40}>
+    </Grid>
+
+   <Grid container justifyContent='center'>
+   {/* <Grid item xs={12} textAlign='center' marginTop={40}>
       <Button variant='contained'>
-      <NavLink to='/BookReserve'>ReserveBook</NavLink>
+      <Link to='/BookReserve'>ReserveBook</Link>
       </Button>
+   </Grid> */}
    </Grid>
+  
   </Grid>
   )
 }

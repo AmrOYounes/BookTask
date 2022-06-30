@@ -1,6 +1,14 @@
-import { Grid, TextField, InputAdornment  } from '@mui/material';
-import React, {useState, useEffect} from 'react';
-import Select from 'react-select';
+
+import { Grid, InputAdornment  } from '@mui/material';
+import React, {useState, useEffect, useRef } from 'react';
+import TextField from '../TextField';
+import {Formik, Form, Field} from 'formik';
+import PublisherDialog from '../PublisherDialog';
+import AuthorDialog from '../AuthorDialog';
+import * as Yup from 'yup';
+import DateTimePicker from '../DatePicker';
+import Select from '../Select';
+import FileInput from '../FileInput';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
@@ -16,46 +24,89 @@ import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import TagsInput from 'react-tagsinput';
 import 'react-tagsinput/react-tagsinput.css';
-import {NavLink} from 'react-router-dom';
+import {NavLink,Link} from 'react-router-dom';
 import DialogTitle from '@mui/material/DialogTitle';
 import {getPublishers, addPublisher,getAuthors, getCountries, addAuthor,addBook} from '../../Actions/APIs/BookAPI';
 import './book.style.scss';
 import { format } from 'date-fns';
+import { useNavigate} from 'react-router';
 
-const customStyles = {
-  control: base => ({
-    ...base,
-    height: 55,
-    minHeight: 35
-  })
+
+
+const initialValues = {
+  bookID: '',
+  title: '',
+  publisher: '',
+  date: '',
+  author: '',
+  files: null,
+  tags: [],
+  units: '',
+  price: '',
 };
 
-function Book() {
-    const [bookPublisher, setBookPublisher] = useState([]);
-    const[bookTags, setBookTags] = useState([]);
-    const [bookAuthor, setBookAuthor] = useState([]);
-    const [establishDate, setEstablishDate] = useState(null);
-    const [publisherName, setPublisherName] = useState('');
-    const [isWorking, setIsWorking] = useState(false);
-    const [bookfile, setBookFile] = useState(null);
-    const [publisherDialog, setPublisherDialog] = React.useState(false);
-    const [publishDate, setPublishDate] = useState(null);
-    const[availableUnits, setAvailableUnits] = useState(null);
-    const[unitPrice, setUnitPrice] = useState(null);
-    const [selectedPublisher, setSelectedPublisher] = useState('');
-    const [selectedAuthor, setSelectedAuthor] = useState('');
-    const [bookId, setBookId] = useState(null);
-    const[bookTitle, setBookTitle] = useState('');
-    const [authorDialog, setAuthorDialog] = React.useState(false);
-    const[firstName, setFirstName]= useState('');
-    const[middleName, setMiddleName]= useState('');
-    const[lastName, setLastName]= useState('');
-    const[birthDate, setBirthDate] = useState(null);
-    const[deathDate, setDeathDate] = useState(null);
-    const[countries, setCountries] = useState([]);
-    const[website, setWebsite] = useState([]);
-    const[selectedCountry, setSelectedCountry] = useState('');
+const validationSchema = Yup.object({
+  bookID: Yup.number().typeError('you must specify a number').required('Required'),
+  title: Yup.string().required('Required'),
+  publisher: Yup.object().shape({
+    label: Yup.string().required(),
+    value: Yup.string().required()
+  }),
+  date: Yup.date().required('Required'),
+  author: Yup.object().shape({
+    label: Yup.string().required(),
+    value: Yup.string().required()
+  }),
+  files:  Yup
+          .mixed()
+          .required("You need to provide a file")
+          .test("type","only .pdf format",(values)=>{
+            if(values){
+              for( let i=0; i<values.length; i++){
+                if(values[i]&& values[i].type !== 'application/pdf' )
+                 return false;
+               }
+               return true;
+            }
+             
+          }),
+  tags:   Yup.array().min(1).required('Required'),
+  units: Yup.number().typeError('you must specify a number').required('Required'),
+  price: Yup.number().typeError('you must specify a number').required('Required'),
+  //   .email('Invalid email format')
+  //   .required('Required'),
+  // password: Yup.string().required('No password provided.').min(8,'Password is too short - should be 8 chars minimum.'),
+  // cpassword: Yup.string().required('Required').oneOf([Yup.ref('password'), null], 'Passwords must match'),
+  
+});
 
+
+function Book() {
+  const ref = useRef();
+  const tagsRef = useRef();
+    const [isSubmit, setIsSubmit] = useState(false);
+    const [bookPublisher, setBookPublisher] = useState([]);
+    const [bookAuthor, setBookAuthor] = useState([]);
+    const [publisherDialog, setPublisherDialog] = React.useState(false);
+    const [authorDialog, setAuthorDialog] = React.useState(false);
+    const[countries, setCountries] = useState([]);
+
+    const customStyles = {
+      control: (base, state) => {
+         return ({
+        ...base,
+        height: 55,
+        minHeight: 35,
+        border:  isSubmit && '1px solid blue' 
+      })
+    }
+    };
+ 
+     const updateDialogState = (dialogName, value) => {
+      dialogName === 'publisher' ? setPublisherDialog(value) : setAuthorDialog(value);
+     }
+
+    
     const handleClickOpen = (dialogName) => {
          if(dialogName === 'publisherDialog') {
           setPublisherDialog(true);
@@ -65,31 +116,30 @@ function Book() {
          }
     }
 
-   const  handleAddNewPublisher = () => {
-        const publisherParams = {
-          Publisher_name: publisherName,
-          Establish_date: establishDate,
-          Is_working: isWorking
-        }
-        console.log(publisherParams);
-        addPublisher(publisherParams).then( res => {
+   const  handleAddNewPublisher = params => {
+        // const publisherParams = {
+        //   Publisher_name: publisherName,
+        //   Establish_date: establishDate,
+        //   Is_working: isWorking
+        // }
+        addPublisher(params).then( res => {
           handleClose('publisherDialog');
           getPublishers().then(res=>{
-            return res.data.map(publisherObject => ({label: publisherObject.Publisher_name, value: publisherObject.Publisher_name}))
+            return res.data.map(publisherObject => ({label: publisherObject.Publisher_name, value: publisherObject.Publisher_name, id: publisherObject.id }))
           }).then( response => {
             setBookPublisher(response);
           })
-          console.log(res);
         })
     }
 
-    const  handleAddAuthor = () => {
+    const  handleAddAuthor = params => {
+      const {birthDate, country, deathDate, fName, lName, mName, website} = params;
       const authorData = {
-        First_name: firstName,
-        Middle_name: middleName,
-        Last_name: lastName,
+        First_name: fName,
+        Middle_name: mName,
+        Last_name: lName,
         Birth_date: birthDate,
-        Country_of_residence: selectedCountry,
+        Country_of_residence: country.label,
         Death_date: deathDate,
         Offical_website: website
       }
@@ -97,15 +147,15 @@ function Book() {
       addAuthor(authorData).then(res=> console.log(res));
       handleClose('authorDialog')
       getAuthors().then(res=>{
-        return res.data.map(authorObject => ({label: `${authorObject.First_name} ${authorObject.Last_name}`, value: `${authorObject.First_name} ${authorObject.Last_name}`}))
+        return res.data.map(authorObject => ({label: `${authorObject.First_name} ${authorObject.Last_name}`, value: `${authorObject.First_name} ${authorObject.Last_name}`, id:authorObject.id}))
       }).then( response => {
         setBookAuthor(response);
-      });
-      console.log(authorData);
+      }).catch(err=> {
+      })
     }
     
     const handleClose = (dialogName) => {
-      console.log(dialogName);
+     
       if(dialogName === 'publisherDialog'){
         setPublisherDialog(false)
       }else{
@@ -113,328 +163,124 @@ function Book() {
       }
     }
 
-    const handleChange = (e) => {
-      console.log(e);
-      // console.log(e.target.value)
-      const { name, value, checked } = e.target;
-      switch(name) {
-        case 'publisherName' :
-          console.log(name,value)
-          setPublisherName(value);
-          break;
-        case 'isWorking':
-          console.log(checked);
-          setIsWorking(checked);
-          break;
-        case 'fName' : 
-          setFirstName(value);
-          break;
-        case 'mName' : 
-          setMiddleName(value);
-          break;
-          case 'lName' : 
-            setLastName(value);
-            break;
-          case 'website' :
-            setWebsite(value);    
-            break;
-          case 'availableUnits':
-            setAvailableUnits(value);
-            break;  
-          case 'unitPrice' :
-            setUnitPrice(value);
-            break;  
-          case 'bookId': 
-          setBookId(value);
-          break;
-         case 'bookTitle' : 
-         setBookTitle(value);
-         break; 
-      }
-     
-    }
-
-  const   handleChangeDate = (newValue, name) => {
-      console.log(newValue, name);
-      const formatedDate = format(newValue,'yyyy-MM-dd');
-       switch(name){
-        case 'birthDate':
-        setBirthDate(formatedDate);
-        break;
-       case 'deathDate':
-        setDeathDate(formatedDate);
-        break;
-       }
-    }
-
-    const handleChangeSelectedValue = (newValue, name ) => {
-      console.log(newValue,name)
-        switch(name){
-          case 'country' :
-            setSelectedCountry(newValue.label);
-            break;
-          case 'bookPublisher': 
-          setSelectedPublisher(newValue.label);  
-          break;
-         case 'bookAuthor': 
-         setSelectedAuthor(newValue.label);
-         break; 
-        }
-    }
-
-    const handleChangeEstablishTime =  newValue => {
-       const formatedDate = format(newValue,'yyyy-MM-dd');
-       console.log(formatedDate);
-      setEstablishDate(formatedDate);
-      console.log(newValue);
-    }
-
-    const handleChangePublishDate = newValue => {
-      const formatedDate = format(newValue,'yyyy-MM-dd');
-      console.log(formatedDate);
-      setPublishDate(formatedDate);
-    }
-
-    const handleSubmitBook = () => {
+  
+    const handleSubmitBook = (values, {resetForm}) => {
+      const {units, title, tags, publisher, price, files, date, bookID, author } = values;
       const formData = new FormData();
-      formData.append('Available_units',availableUnits);
-      formData.append('Book_author', selectedAuthor);
-      formData.append('Book_id',bookId);
-      formData.append('Book_path',bookfile);
-      formData.append('Book_publisher',selectedPublisher);
-      formData.append('Book_title',bookTitle);
-      formData.append('Publish_date',publishDate);
-      formData.append('Unit_price',unitPrice);
-      formData.append('tags', bookTags.join())
-
-      addBook(formData).then( res => {
-         setBookId('');
-         setBookTitle('');
-         setPublishDate(null);
-         setBookTags([]);
-         setAvailableUnits('');
-         setUnitPrice('')
-      });
+      for( let i=0; i<files.length;i++ ) {
+        formData.append('Book_path[]',files[i]);
+      }
+      for(let tag of tags){
+        formData.append('tags[]', tag)
+      }
+    formData.append('Available_units', units);
+    formData.append('author_Id', author.id);
+    formData.append('Book_id',bookID);
+    formData.append('publisher_Id',publisher.id);
+    formData.append('Book_title',title);
+    formData.append('Publish_date',date);
+    formData.append('Unit_price',price);
+    addBook(formData).then( res => {
+      resetForm();
+      ref.current.value = "";
+    });
+    }
       
-    }
 
-    const hanldeFileUpload = (e) => {
-        let file = e.target.files[0];
-        console.log(file);
-        setBookFile(file);
-    }
-    const handleTags = (tags) => {
-      console.log(tags);
-       setBookTags(tags);
-    }
+      
+    
+
     useEffect( ()=> {
        
       getCountries().then( res => {
         return res.map(country => ({label: country.name.common, value: country.name.common}))
       }).then( response => {
-        console.log(response);
         setCountries(response);
       })
 
       getPublishers().then(res=>{
-        return res.data.map(publisherObject => ({label: publisherObject.Publisher_name, value: publisherObject.Publisher_name}))
+        return res.data.map(publisherObject => ({label: publisherObject.Publisher_name, value: publisherObject.Publisher_name,id: publisherObject.id }))
       }).then( response => {
         setBookPublisher(response);
-      });
+      }).catch(err => {
+        window.location.reload();
+      })
 
       getAuthors().then(res=>{
-        return res.data.map(authorObject => ({label: `${authorObject.First_name} ${authorObject.Last_name}`, value: `${authorObject.First_name} ${authorObject.Last_name}`}))
+        return res.data.map(authorObject => ({label: `${authorObject.First_name} ${authorObject.Last_name}`, value: `${authorObject.First_name} ${authorObject.Last_name}`, id:authorObject.id}))
       }).then( response => {
         setBookAuthor(response);
       });
      
-    },[])
+    },[]);
      
   return (
-    <Grid container justifyContent='center'  className='book-container'>
-        
+    <Grid container justifyContent='center' className='main-container'>
         {/* Publisher dialig  */}
-        <Dialog open={publisherDialog} onClose={() => handleClose('publisherDialog')}>
-        <DialogTitle>Add new publisher</DialogTitle>
-        <DialogContent>
-           <label>Publisher name</label>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="name"
-            name='publisherName'
-            type="text"
-            fullWidth
-            variant='outlined'
-            onChange={ handleChange}
-          />
-           <label>Establish date</label>
-      <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Stack spacing={3}>
-        <DesktopDatePicker
-          
-          inputFormat="yyyy-MM-dd"
-          value={establishDate}
-          onChange={handleChangeEstablishTime}
-          renderInput={(params) => <TextField {...params} />}
-        />
-      </Stack>
-    </LocalizationProvider>
-    <FormControlLabel control={<Checkbox  name='isWorking' checked={isWorking} inputProps={{ 'aria-label': 'controlled' }}
-     onChange={handleChange} />} label="Still working ?" />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleAddNewPublisher}  variant='contained'>Add</Button>
-          <Button onClick={() => handleClose('publisherDialog')}>Cancel</Button>
-        </DialogActions>
-      </Dialog>
+        {
+          publisherDialog && (
+<PublisherDialog publisherDialogState={publisherDialog} updateDialogState={updateDialogState} handleAddNewPublisher={handleAddNewPublisher}/> 
+          )
+        }
 
-
-
-        {/* Author Dialog */}
-      <Dialog open={authorDialog} onClose={() => handleClose('authorDialog')} fullWidth>
-        <DialogTitle>Add new Author</DialogTitle>
-        <DialogContent>
-           
-          <Grid container justifyContent='center' spacing={2}>
-          <Grid item xs={4}>
-          <label>First name</label>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="name"
-            name='fName'
-            type="text"
-            fullWidth
-            variant='outlined'
-            onChange={ handleChange}
-          />
-          </Grid>
-          <Grid item xs={4}>
-          <label>Middle name</label>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="name"
-            name='mName'
-            type="text"
-            fullWidth
-            variant='outlined'
-            onChange={ handleChange}
-          />
-          </Grid>
-
-          <Grid item xs={4}>
-          <label>Last name</label>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="name"
-            name='lName'
-            type="text"
-            fullWidth
-            variant='outlined'
-            onChange={handleChange}
-          />
-          </Grid>
-          </Grid>
-
-          <Grid container justifyContent='center' spacing={2}>
-          <Grid item xs={6}>
-          <label>Birth of  date</label>
-      <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Stack spacing={3}>
-        <DesktopDatePicker
-          inputFormat="yyyy-MM-dd"
-          value={birthDate}
-          onChange={(newValue)=>handleChangeDate(newValue,'birthDate')}
-          renderInput={(params) => <TextField {...params} />}
-        />
-      </Stack>
-    </LocalizationProvider>
-          </Grid>
-          <Grid item xs={6}>
-            <label>Country of residance</label>
-          <Select styles={customStyles} options={countries} onChange={ (newValue)=>handleChangeSelectedValue(newValue,'country')}/>
-          </Grid>
-          </Grid>
-      
-      <Grid container justifyContent='center' spacing={2}>
-       <Grid item xs={6}>
-        <label>Death date</label>
-       <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Stack spacing={3}>
-        <DesktopDatePicker
-          
-          inputFormat="yyyy-MM-dd"
-          value={deathDate}
-          onChange={(newValue)=>handleChangeDate(newValue,'deathDate')}
-          renderInput={(params) => <TextField {...params} />}
-        />
-      </Stack>
-    </LocalizationProvider>
-       </Grid>
-       <Grid item xs={6}>
-       <label>Offical website</label>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="name"
-            name='website'
-            type="text"
-            fullWidth
-            variant='outlined'
-            onChange={ handleChange}
-          />
-        </Grid>
-      </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleAddAuthor}  variant='contained'>Add</Button>
-          <Button onClick={() => handleClose('authorDialog')}>Cancel</Button>
-        </DialogActions>
-      </Dialog>
-
-
-
-      <Grid item xs={12} textAlign='center' className='header-title'>
+        {
+          authorDialog && (
+            <AuthorDialog authorDialogState={authorDialog} updateDialogState={updateDialogState} countries={countries} handleAddAuthor={handleAddAuthor}/>
+          )
+        } 
+     
+      <Grid item xs={8} textAlign='center' className='header-title'>
       <h3>ADD NEW BOOK</h3>
       </Grid>
+      <Formik
+      initialValues={initialValues}
+      validationSchema={validationSchema}
+      onSubmit={ handleSubmitBook}
+      > 
+      <Grid item xs={8} className='book-form'>
+        <Form  style={{width:'100%'}}>
       <Grid item xs={12} marginBottom={3} marginTop={10}>
         <Grid container justifyContent='center'>
-        <Grid item xs={3} md={1} style={{maxWidth:'114px'}}>
+        <Grid item xs={3} md={1} textAlign='left'>
           <label>Book ID </label> 
           </Grid>
-          <Grid item xs={8} md={4} style={{maxWidth:'470px'}} >
-          <TextField id="outlined-basic" value={bookId} label="Outlined" name='bookId' fullWidth variant="outlined" onChange={handleChange}  />
+          <Grid item xs={8} md={4} >
+          <TextField id="bookID"  name='bookID'/>
        </Grid>
         </Grid>
       </Grid>
 
       <Grid item xs={12} marginBottom={3}>
         <Grid container justifyContent='center'>
-        <Grid item xs={3} md={1} style={{maxWidth:'114px'}}>
+        <Grid item xs={3} md={1} textAlign='left' >
           <label>Book title </label> 
           </Grid>
-          <Grid item xs={8} md={4} style={{maxWidth:'470px'}} >
-          <TextField id="outlined-basic" label="Outlined" name='bookTitle' value={bookTitle} fullWidth variant="outlined" onChange={handleChange} />
+          <Grid item xs={8} md={4}>
+          <TextField id="title" label="Outlined" name='title' />
        </Grid>
         </Grid>
       </Grid>
       
         <Grid item xs={12} marginBottom={3}>
           <Grid container justifyContent='center'>  
-          <Grid item xs={3} md={1} style={{maxWidth:'114px'}}>
+          <Grid item xs={3} md={1} textAlign='left'>
           <label>Book Publisher </label> 
           </Grid>
-       <Grid item   xs={7} md={3}style={{maxWidth:'400px'}} >
-       <Select styles={customStyles} options={bookPublisher} onChange={ (newValue)=>handleChangeSelectedValue(newValue,'bookPublisher')} />
-       </Grid>
-       <Grid item xs={1}   style={{maxWidth:'70px'}}>
-       <IconButton aria-label="delete" onClick={()=> handleClickOpen('publisherDialog')}>
+          <Grid item   xs={7} md={4}  >
+        <Grid container>
+        <Grid item md={11}> 
+        <Select   options={bookPublisher} name='publisher' />
+        </Grid>
+        <Grid item md={1}>
+        <IconButton aria-label="delete" onClick={()=> handleClickOpen('publisherDialog')}>
         <AddCircleOutlineIcon />
       </IconButton>
+        </Grid>
+        </Grid>
        </Grid>
+       {/* <Grid item xs={1}   style={{maxWidth:'70px'}}>
+       
+       </Grid> */}
        </Grid>
 
         </Grid>
@@ -445,17 +291,7 @@ function Book() {
           <label>Publish date </label> 
           </Grid>
           <Grid item xs={8} md={4} style={{maxWidth:'470px'}} >
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Stack spacing={3}>
-        <DesktopDatePicker
-          
-          inputFormat="yyyy-MM-dd"
-          value={publishDate}
-          onChange={handleChangePublishDate}
-          renderInput={(params) => <TextField {...params} />}
-        />
-      </Stack>
-    </LocalizationProvider>
+          <DateTimePicker name='date'/>
        </Grid>
         </Grid>
       </Grid>
@@ -465,13 +301,17 @@ function Book() {
           <Grid item xs={3} md={1} style={{maxWidth:'114px'}}>
           <label>Book Author </label> 
           </Grid>
-       <Grid item xs={7} md={3} style={{maxWidth:'400px'}} >
-       <Select styles={customStyles} options={bookAuthor} onChange={ (newValue)=>handleChangeSelectedValue(newValue,'bookAuthor')} />
-       </Grid>
-       <Grid item xs={1} style={{maxWidth:'70px'}}>
-       <IconButton aria-label="delete" onClick={()=> handleClickOpen('authorDialog')}>
+          <Grid item   xs={7} md={4}  >
+        <Grid container>
+        <Grid item md={11}> 
+        <Select  options={bookAuthor} name='author'/>
+        </Grid>
+        <Grid item md={1}>
+        <IconButton aria-label="delete" onClick={()=> handleClickOpen('authorDialog')}>
         <AddCircleOutlineIcon />
       </IconButton>
+        </Grid>
+        </Grid>
        </Grid>
        </Grid>
         </Grid>  
@@ -482,7 +322,30 @@ function Book() {
           <label>Book PDF </label> 
           </Grid>
           <Grid item xs={8} md={4} style={{maxWidth:'470px'}} >
-           <input type="file" name="Book" id="book-pdf" onChange={hanldeFileUpload}/>
+            <Field  name='files'>
+               {
+                props => {
+                 const {field, form, meta} = props;
+                 const {setFieldValue,setFieldTouched} = form;
+                
+                 return (
+                  <>
+                  <input id="files"  multiple name='files' ref={ref} type="file" onChange={(event) => {
+                    // setTouched("files",true)
+                    setFieldTouched("files",true);
+                    setFieldValue("files", event.currentTarget.files);
+                  }} />
+                  {
+                    meta.touched && meta.error   && (<div className='error'>{meta.error}</div>)
+                  }
+                  
+                  </>
+                 )
+                }
+               }
+            </Field>
+  
+           
        </Grid>
         </Grid>
       </Grid>
@@ -493,7 +356,33 @@ function Book() {
           <label>Book tags </label> 
           </Grid>
           <Grid item xs={8} md={4} style={{maxWidth:'470px'}} >
-           <TagsInput   value={bookTags}  onChange={handleTags}/>
+            <Field   name='tags'>
+                  {
+                    props => {
+                     
+                      const {field, form, meta} = props;
+                     
+                       const {setFieldValue} = form;
+                      //  if(meta.touched && meta.error&&field.value.length === 0){
+                      //   tagsRef.current.style.background  ='red';
+                      //  }
+                       return (
+                        <>
+                        <TagsInput   ref={tagsRef}   value={field.value}  onChange={(values) => {
+                          
+                          setFieldValue('tags',values)
+                        }}/>
+                        {
+                      
+                       meta.touched && meta.error&&field.value.length === 0   && (<div className='error'> {meta.error}</div>)   
+                         }
+                        </>
+                       )
+                     
+                    }
+                  }
+            </Field>
+           {/* <TagsInput   value={bookTags}  onChange={handleTags}/> */}
        </Grid>
         </Grid>
       </Grid>
@@ -503,7 +392,7 @@ function Book() {
           <label>Available Units </label> 
           </Grid>
           <Grid item xs={8} md={4} style={{maxWidth:'470px'}} >
-          <TextField id="outlined-basic"  fullWidth variant="outlined" type='number' name='availableUnits' onChange={handleChange}  value={availableUnits} />
+          <TextField id="units" type='number' name='units'/>
        </Grid>
         </Grid>
       </Grid>
@@ -514,7 +403,7 @@ function Book() {
           <label>Unit Price </label> 
           </Grid>
           <Grid item xs={8} md={4} style={{maxWidth:'470px'}} >
-          <TextField  value={unitPrice} onChange={handleChange} id="outlined-basic"  name='unitPrice' fullWidth variant="outlined" type='number'
+          <TextField     id="price"  name='price'  type='number'
           InputProps={{endAdornment:(
             <InputAdornment position="start">
             <AttachMoneyIcon />
@@ -527,13 +416,23 @@ function Book() {
 
       <Grid item xs={12} marginBottom={10}>
         <Grid container justifyContent='center'>
-        <Button variant="contained" onClick={handleSubmitBook}>Submit book</Button>
+        <Button variant="contained" type='submit'>Submit book</Button>
+        
+       
+      <Button variant='contained' sx={{marginLeft:'20px'}}>
+        <Link to='/booksearch'>
+        Book Search
+        </Link>
+        </Button>
         </Grid>
       </Grid>
-
-      <Button variant='contained'>
-      <NavLink to='/booksearch'>Search</NavLink>
-      </Button>
+      </Form>
+      </Grid>
+      </Formik>
+      <Grid item xs={12} textAlign='center'>
+      
+      </Grid>
+    
      
       
     </Grid>

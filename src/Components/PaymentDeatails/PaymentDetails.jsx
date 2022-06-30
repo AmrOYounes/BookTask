@@ -4,17 +4,19 @@ import {Button, Grid,TextField,InputAdornment} from '@mui/material';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import {addNewOrder} from '../../Actions/APIs/BookAPI';
 import { ToastContainer, toast } from "react-toastify";
+import {useNavigate} from 'react-router-dom';
 import "react-toastify/ReactToastify.min.css";
 
 import 'react-toastify/dist/ReactToastify.css';
 
  
- const PaymentDetails = ({reservedBook, handleFillOrderInfo}) => {
+ const PaymentDetails = ({reservedBook, handleFillOrderInfo,resetBookFields, handleSelectTab}) => {
     const [paymentMethod, setPaymnetMethod] = useState({label: reservedBook.paymentMethod, value: reservedBook.paymentMethod});
     const [numberOfUnits, setNumberOfUnits] = useState(reservedBook.numberOfUnits);
     const[showError, setShowError] = useState(false);
 
 console.log(reservedBook);
+let navigate = useNavigate();
 
 const options = [
     { label: 'Cash', value: 'Cash'},
@@ -25,12 +27,12 @@ const hanldeReserve = () => {
 
     handleFillOrderInfo({
         paymentMethod: paymentMethod.label,
-        numberOfUnits,
+        numberOFUnits: numberOfUnits,
         totalPrice: numberOfUnits*reservedBook.Unit_price,
     });
     const params = {
-         Book_id: reservedBook.Book_id,
-         numberOfUnits: reservedBook.numberOfUnits,
+         Book_id: reservedBook.Book_id.label,
+         numberOfUnits: reservedBook.numberOFUnits,
          buyerName: reservedBook.buyerName, 
          buyerAdress: reservedBook.buyerAdress,
          phone: reservedBook.phone,
@@ -39,13 +41,11 @@ const hanldeReserve = () => {
          paymentMethod: paymentMethod.label,
          totalPrice: numberOfUnits*reservedBook.Unit_price,
     }
-     
-
+    resetBookFields();
+    
     addNewOrder(params).then(res=> {
-      console.log(res)
-       
-        toast("accomplish Successfully");
-      
+      toast("accomplish Successfully");
+      navigate('/purchaseHistory')
     });
 
     
