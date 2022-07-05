@@ -32,7 +32,6 @@ const initialValues = {
         initialValues={initialValues}
         validationSchema={validationSchema}
         onSubmit={ values => {
-            console.log(values)
            const {Publisher_name, Establish_date,Is_working } = values;
             handleAddNewPublisher({
                 Publisher_name,

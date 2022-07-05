@@ -10,8 +10,6 @@ const SelectWrapper = ({
   }) => {
     const { setFieldValue } = useFormikContext();
     const [field, meta] = useField(name);
-    console.log(field)
-    console.log(meta);
     const customStyles = {
       control: (base, state) => {
       
@@ -24,12 +22,10 @@ const SelectWrapper = ({
       })
     }
     };
-     console.log(field)
     const handleChange = newValue => {
     //   const { value } = evt.target;
       setFieldValue(name, newValue);
     };
-    console.log(meta)
   
     const configSelect = {
       ...field,

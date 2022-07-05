@@ -25,14 +25,11 @@ function Login({UpdateAuthState, isAuth}) {
   const [error, setError] = useState(false);
 
     let navigate = useNavigate();
-console.log(isAuth)
     useEffect(()=> {
          if(isAuth){
          return  navigate('/');
          }
     },[isAuth])
-
-    // console.log('ggggggg');
     // const [email, setEmail] = useState('');
     // const [password, setPassword] = useState('');
    
@@ -46,7 +43,6 @@ console.log(isAuth)
     // }
 
     const handleLogin = values => {
-         console.log(values)
          const {email, password} = values;
         const params = {
             email,
@@ -55,7 +51,7 @@ console.log(isAuth)
         LoginFunc('/login', params).then( res => {
           UpdateAuthState(true);
           localStorage.setItem('access-token',res.accessToken);
-            // console.log(res);
+          localStorage.setItem('user',res.userName);
             return navigate('/');
         }).catch(err =>{
           setError(true)

@@ -27,7 +27,7 @@ import {exportData} from '../../Actions/APIs/BookAPI';
    search: false,
    filter: false,
   })
-
+  const [isSearch, setIsSearch] = useState(false);
   const customStyles = {
    control: (base, state) => {
 
@@ -66,7 +66,6 @@ import {exportData} from '../../Actions/APIs/BookAPI';
   }
 
   const handleChangeFilter = (newValue) => {
-   console.log(newValue);
    sertFilter(newValue.label);
    setErros({
       ...errors,
@@ -101,7 +100,7 @@ import {exportData} from '../../Actions/APIs/BookAPI';
          price_end: priceEnd,
          page
        }
-   
+       setIsSearch(true)
        bookSearch(params).then(res => {
          setData(res.data.data);
          setCount(res.data.total);
@@ -116,7 +115,6 @@ import {exportData} from '../../Actions/APIs/BookAPI';
   }
 
   const handleExport = (type) => {
-   console.log(type)
    const  fileTypes = {
       PDF: 'pdf',
       CSV: 'csv',
@@ -142,9 +140,7 @@ import {exportData} from '../../Actions/APIs/BookAPI';
     }
     const anchor = document.createElement('a');
     document.body.appendChild(anchor);
-    console.log(fileTypes[type]);
      exportData(config).then(res => {
-      console.log(res)
       const objectUrl = window.URL.createObjectURL(new Blob([res.data]));
       anchor.href = objectUrl;
       anchor.download =  `${fileName}.${fileTypes[type]}`;
@@ -214,15 +210,25 @@ import {exportData} from '../../Actions/APIs/BookAPI';
    <Grid container justifyContent='center'> 
     {data.length > 0 && (
       <Grid item xs={12} marginTop={20}> 
-      <Grid item xs ={12} textAlign='right'>
+      <Grid item xs ={11} textAlign='right'>
          <span>Export as </span>
          <Button sx={{margin:'5px 5px'}} variant='contained' onClick={()=> handleExport('PDF')}>PDF</Button>
          <Button  sx={{margin:'5px 5px'}}variant='contained' onClick={()=> handleExport('CSV')}>CSV</Button>
          <Button  sx={{margin:'5px 5px'}}variant='contained' onClick={()=> handleExport('XLSX')}>EXCEL</Button>
       </Grid>
       
-     <BookTable books={data} count={count} rowsPerPage={rowsPerPage} handleSearch={handleChangePage}/>
+      <Grid container justifyContent='center'>
+         <Grid item xs={10}>
+         <BookTable books={data} count={count} rowsPerPage={rowsPerPage} handleSearch={handleChangePage}/>
+         </Grid>
+     
       </Grid>
+     
+      </Grid>
+    )}
+
+    { (data.length === 0 && isSearch) && (
+      <Grid container justifyContent='center' sx={{marginTop: 10}}> No Result found</Grid>
     )}
     </Grid>
 

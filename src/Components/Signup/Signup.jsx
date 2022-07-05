@@ -31,7 +31,6 @@ function Signup() {
 
     const handleSignUp = (values, {resetForm}) => {
       const {email, password, cpassword} = values;
-      console.log(values);
       const params = {
          email,
          password,

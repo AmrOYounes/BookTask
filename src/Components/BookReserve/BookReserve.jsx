@@ -12,16 +12,26 @@ import 'react-tabs/style/react-tabs.scss';
 
 const BookReserve = () => {
   const {id} = useParams();
-  console.log(id);
   const [buyerTab, setBuyerTab] = useState(true);
   const [paymentTab, setPaymentTab] = useState(true);
   const [tabIndex, setTabIndex] = useState(0);
   const [reservedBook, setReservedBook] = useState({});
+  
   const resetBookFields = ()=> {
-   for( let key in reservedBook){
-    reservedBook[key] = ''
-   }
+  //   const temp = reservedBook;
+  //  for( let key in temp){
+  //   reservedBook[key] = ''
+  //  }
+  //  temp['Book_id'] = {label: '', value: ''};
+   setReservedBook({
+    ...reservedBook,
+    numberOFUnits: '',
+   })
   }
+
+  // const getBookInformation = () => {
+
+  // }
 
   useEffect(()=>{
     getBookByIdOrTitle({BOOK_id: id }).then(result => {
@@ -29,6 +39,7 @@ const BookReserve = () => {
       setReservedBook({
         ...reservedBook,
         Book_id: {label: `${book.Book_id}` },
+        Book_title:  {label: `${book.Book_title}`},
         publisher: book.publisher.Publisher_name,
         Publish_date: book.Publish_date,
         author: `${book.author.First_name} ${book.author.Last_name}`,
@@ -54,20 +65,17 @@ const BookReserve = () => {
   }
 
   const handleSelectTab = (index) => {
-    console.log(index);
     setTabIndex(index)
   }
 
   const handleFillOrderInfo = (info) => {
-    console.log(info)
     const temp = {...reservedBook, ...info}
-    console.log(temp)
     setReservedBook(temp);
   }
 
   return (
     <Grid container justifyContent='center'>
-      <Grid item xs={6}>
+      <Grid item xs={6}  sx={{marginTop:'70px'}}>
       <Tabs selectedIndex={tabIndex} onSelect={handleSelectTab}>
     <TabList>
       <Tab>Book details</Tab>

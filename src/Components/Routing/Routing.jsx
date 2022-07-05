@@ -8,10 +8,13 @@ import Book from '../book';
 import BookSearch from '../BookSearch';
 import BookReserve from '../BookReserve';
 import PurchaseHistory from '../PurchaseHistory';
+import ResponsiveAppBar from '../Appbar';
+
 
 const Routing = ({isAuth, UpdateAuthState}) =>  {
   return (
     <Router>
+      {isAuth && (<ResponsiveAppBar UpdateAuthState={UpdateAuthState}/>)}
       <Routes>
         <Route path="/" element={<PrivateRoute isAuth={isAuth}/>}>
           <Route path="/" element={<Book/>} />
