@@ -96,7 +96,7 @@ function Book() {
   const [publisherDialog, setPublisherDialog] = React.useState(false);
   const [authorDialog, setAuthorDialog] = React.useState(false);
   const [countries, setCountries] = useState([]);
-
+ console.log(bookAuthor)
   const customStyles = {
     control: (base, state) => {
       return {
@@ -157,9 +157,8 @@ function Book() {
       Offical_website: website,
     };
 
-    addAuthor(authorData).then((res) => {});
-    handleClose("authorDialog");
-    getAuthors()
+    addAuthor(authorData).then((res) => {
+      getAuthors()
       .then((res) => {
         return res.data.map((authorObject) => ({
           label: `${authorObject.First_name} ${authorObject.Last_name}`,
@@ -171,6 +170,9 @@ function Book() {
         setBookAuthor(response);
       })
       .catch((err) => {});
+    });
+    handleClose("authorDialog");
+    
   };
 
   const handleClose = (dialogName) => {
